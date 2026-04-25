@@ -1,4 +1,4 @@
-package com.example.texteditor.Data
+package com.example.texteditor.Data.db
 
 import androidx.room.Dao
 import androidx.room.Delete

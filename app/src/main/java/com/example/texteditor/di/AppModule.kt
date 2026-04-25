@@ -1,9 +1,9 @@
-package com.example.texteditor.ViewModels
+package com.example.texteditor.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.texteditor.Data.AppDatabase
-import com.example.texteditor.Data.DocumentDao
+import com.example.texteditor.Data.db.AppDatabase
+import com.example.texteditor.Data.db.DocumentDao
 import com.example.texteditor.Data.DocumentRepository
 import dagger.Module
 import dagger.Provides

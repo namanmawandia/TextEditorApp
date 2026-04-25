@@ -1,4 +1,4 @@
-package com.example.texteditor.Data
+package com.example.texteditor.Data.db
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
