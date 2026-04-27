@@ -1,12 +1,14 @@
-package com.example.texteditor.Data
+package com.example.texteditor.data
 
-import com.example.texteditor.Data.db.DocumentDao
-import com.example.texteditor.Data.db.DocumentEntity
+import com.example.texteditor.data.db.DocumentDao
+import com.example.texteditor.data.db.DocumentEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class DocumentRepository @Inject constructor(
     private val dao: DocumentDao
 ) {

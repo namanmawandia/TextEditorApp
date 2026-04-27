@@ -2,8 +2,8 @@ package com.example.texteditor.ui.documentlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.texteditor.Data.DocumentRepository
-import com.example.texteditor.Data.db.DocumentEntity
+import com.example.texteditor.data.DocumentRepository
+import com.example.texteditor.data.db.DocumentEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +27,4 @@ class DocumentListViewModel @Inject constructor(
     fun deleteDocument(doc: DocumentEntity) {
         viewModelScope.launch { repository.deleteDocument(doc) }
     }
-
-    fun createNewDocument(): Long = 0L  // placeholder — editor will handle actual save
 }

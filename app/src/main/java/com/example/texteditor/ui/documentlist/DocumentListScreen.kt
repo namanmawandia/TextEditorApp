@@ -1,4 +1,4 @@
-package com.yourapp.editor.ui.documentlist
+package com.example.texteditor.ui.documentlist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -38,8 +38,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.texteditor.Data.db.DocumentEntity
-import com.example.texteditor.ui.documentlist.DocumentListViewModel
+import com.example.texteditor.data.db.DocumentEntity
 import com.example.texteditor.ui.theme.RichTextEditorTheme
 import java.text.SimpleDateFormat
 import java.util.Date

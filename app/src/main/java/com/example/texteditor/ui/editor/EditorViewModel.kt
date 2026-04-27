@@ -11,9 +11,9 @@ import android.text.style.UnderlineSpan
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.texteditor.Data.DocumentRepository
-import com.example.texteditor.Data.db.DocumentEntity
-import com.example.texteditor.data.util.SpanSerializer
+import com.example.texteditor.data.DocumentRepository
+import com.example.texteditor.data.db.DocumentEntity
+import com.example.texteditor.data.SpanSerializer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,19 +22,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class EditorUiState(
-    val documentId: Long = -1L,
-    val title: String = "",
-    val content: SpannableStringBuilder = SpannableStringBuilder(),
-    val isBold: Boolean = false,
-    val isItalic: Boolean = false,
-    val isUnderline: Boolean = false,
-    val isStrikethrough: Boolean = false,
-    val activeForegroundColor: Int? = null,
-    val activeHighlightColor: Int? = null,
-    val isSaving: Boolean = false,
-    val isSaved: Boolean = false
-)
 
 @HiltViewModel
 class EditorViewModel @Inject constructor(

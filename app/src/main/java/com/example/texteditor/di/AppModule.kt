@@ -2,9 +2,9 @@ package com.example.texteditor.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.texteditor.Data.db.AppDatabase
-import com.example.texteditor.Data.db.DocumentDao
-import com.example.texteditor.Data.DocumentRepository
+import com.example.texteditor.data.db.AppDatabase
+import com.example.texteditor.data.db.DocumentDao
+import com.example.texteditor.data.DocumentRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

@@ -1,4 +1,4 @@
-package com.example.texteditor.Data.db
+package com.example.texteditor.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase

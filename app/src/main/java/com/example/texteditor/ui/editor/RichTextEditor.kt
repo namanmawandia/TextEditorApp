@@ -1,5 +1,6 @@
 package com.example.texteditor.ui.editor
 
+import android.content.Context
 import android.text.SpannableStringBuilder
 import android.text.method.ArrowKeyMovementMethod
 import android.view.Gravity
@@ -14,6 +15,15 @@ import androidx.core.widget.doOnTextChanged
 import com.example.texteditor.ui.theme.RichTextEditorTheme
 import androidx.compose.material3.MaterialTheme
 
+// Custom EditText that exposes onSelectionChanged via a callback
+private class RichEditText(context: Context) : EditText(context) {
+    var selectionChangeListener: ((Int, Int) -> Unit)? = null
+
+    override fun onSelectionChanged(selStart: Int, selEnd: Int) {
+        super.onSelectionChanged(selStart, selEnd)
+        selectionChangeListener?.invoke(selStart, selEnd)
+    }
+}
 
 @Composable
 fun RichTextEditor(
@@ -28,7 +38,7 @@ fun RichTextEditor(
     AndroidView(
         modifier = modifier.fillMaxSize(),
         factory = { context ->
-            EditText(context).apply {
+            RichEditText(context).apply {
                 background = null
                 setPadding(48, 48, 48, 48)
                 textSize = 16f
@@ -38,12 +48,11 @@ fun RichTextEditor(
                 hint = "Start writing..."
                 movementMethod = ArrowKeyMovementMethod.getInstance()
                 isSingleLine = false
+                customSelectionActionModeCallback = null
 
-                // Set initial content
                 setText(content)
                 setSelection(content.length)
 
-                // Notify content changes upward
                 doOnTextChanged { text, _, _, _ ->
                     if (text is SpannableStringBuilder) {
                         onContentChanged(text)
@@ -52,9 +61,14 @@ fun RichTextEditor(
                     }
                 }
 
-                // Notify selection changes so toolbar toggles update
-                customSelectionActionModeCallback = null
-                accessibilityDelegate
+                selectionChangeListener = { start, end ->
+                    // text is always a SpannableStringBuilder inside EditText
+                    onSelectionChanged(
+                        SpannableStringBuilder(editableText),
+                        start,
+                        end
+                    )
+                }
             }
         },
         update = { editText ->

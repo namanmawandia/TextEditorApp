@@ -8,8 +8,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.texteditor.ui.editor.EditorScreen
 import com.example.texteditor.ui.theme.RichTextEditorTheme
-import com.yourapp.editor.ui.documentlist.DocumentListScreen
+import com.example.texteditor.ui.documentlist.DocumentListScreen
 
 sealed class Screen(val route: String) {
     data object DocumentList : Screen("document_list")
@@ -40,7 +41,9 @@ fun AppNavGraph(
             route = Screen.Editor.route,
             arguments = listOf(navArgument("documentId") { type = NavType.LongType })
         ) {
-            // EditorScreen goes here next sprint
+            EditorScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

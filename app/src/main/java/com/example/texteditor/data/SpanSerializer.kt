@@ -1,4 +1,4 @@
-package com.example.texteditor.data.util
+package com.example.texteditor.data
 
 
 import android.graphics.Typeface
@@ -61,5 +61,4 @@ object SpanSerializer {
     fun getHighlightColor(spannable: Spannable, start: Int, end: Int): Int? =
         spannable.getSpans(start, end, BackgroundColorSpan::class.java)
             .firstOrNull()?.backgroundColor
-
 }

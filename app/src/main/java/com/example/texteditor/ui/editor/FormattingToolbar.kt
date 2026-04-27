@@ -1,6 +1,5 @@
 package com.example.texteditor.ui.editor
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatColorText
@@ -29,11 +27,14 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.texteditor.ui.theme.RichTextEditorTheme
 
 @Composable
@@ -101,12 +102,9 @@ fun FormattingToolbar(
                 activeColor = activeForegroundColor?.let { Color(it) },
                 contentDescription = "Text color",
                 onClick = onTextColorClick
-            )
-            ColorFormatButton(
-                icon = Icons.Default.FormatColorText,
+           )
+            HighlightButton(
                 activeColor = activeHighlightColor?.let { Color(it) },
-                contentDescription = "Highlight",
-                indicatorBelow = true,
                 onClick = onHighlightClick
             )
         }
@@ -147,9 +145,10 @@ private fun ColorFormatButton(
     icon: ImageVector,
     activeColor: Color?,
     contentDescription: String,
-    indicatorBelow: Boolean = false,
     onClick: () -> Unit
 ) {
+    val indicatorColor = activeColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+
     IconButton(
         onClick = onClick,
         modifier = Modifier.size(40.dp),
@@ -161,18 +160,47 @@ private fun ColorFormatButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier
+                    .size(20.dp)
             )
-            // Small color dot indicator below the icon
-            if (activeColor != null) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(activeColor)
-                        .align(Alignment.BottomCenter)
-                )
-            }
+        }
+    }
+}
+
+@Composable
+private fun HighlightButton(
+    activeColor: Color?,
+    onClick: () -> Unit
+) {
+    val barColor = activeColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(40.dp),
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = if (activeColor != null)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            else
+                Color.Transparent
+        )
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = "H",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor,
+                modifier = Modifier.drawBehind {
+                    val barHeight = 3.dp.toPx()
+                    val y = size.height - 4.dp.toPx()
+                    drawRect(
+                        color = barColor,
+                        topLeft = Offset(0f, y),
+                        size = androidx.compose.ui.geometry.Size(size.width, barHeight)
+                    )
+                }
+            )
         }
     }
 }

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.android)
+    kotlin("kapt")
 }
 
 android {
@@ -39,6 +40,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    kapt {
+        correctErrorTypes = true
+    }
 }
 
 dependencies {
@@ -51,8 +55,12 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
-    implementation("com.google.dagger:hilt-android:2.51.1")
-    ksp("com.google.dagger:hilt-compiler:2.51.1")
+//    implementation("com.google.dagger:hilt-android:2.51.1")
+//    ksp("com.google.dagger:hilt-compiler:2.51.1")
+
+    implementation("com.google.dagger:hilt-android:2.56.1")
+    kapt("com.google.dagger:hilt-compiler:2.56.1")
+
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
