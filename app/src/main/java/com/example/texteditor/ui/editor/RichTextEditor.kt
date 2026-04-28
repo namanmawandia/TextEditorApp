@@ -6,6 +6,7 @@ import android.text.method.ArrowKeyMovementMethod
 import android.view.Gravity
 import android.widget.EditText
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -13,9 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.widget.doOnTextChanged
 import com.example.texteditor.ui.theme.RichTextEditorTheme
-import androidx.compose.material3.MaterialTheme
 
-// Custom EditText that exposes onSelectionChanged via a callback
 private class RichEditText(context: Context) : EditText(context) {
     var selectionChangeListener: ((Int, Int) -> Unit)? = null
 
@@ -30,6 +29,7 @@ fun RichTextEditor(
     content: SpannableStringBuilder,
     onContentChanged: (SpannableStringBuilder) -> Unit,
     onSelectionChanged: (SpannableStringBuilder, Int, Int) -> Unit,
+    onEditTextReady: (EditText) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val textColor = MaterialTheme.colorScheme.onBackground.toArgb()
@@ -54,25 +54,22 @@ fun RichTextEditor(
                 setSelection(content.length)
 
                 doOnTextChanged { text, _, _, _ ->
-                    if (text is SpannableStringBuilder) {
-                        onContentChanged(text)
-                    } else if (text != null) {
-                        onContentChanged(SpannableStringBuilder(text))
-                    }
+                    val ssb = if (text is SpannableStringBuilder) text
+                    else SpannableStringBuilder(text ?: "")
+                    onContentChanged(ssb)
                 }
 
                 selectionChangeListener = { start, end ->
-                    // text is always a SpannableStringBuilder inside EditText
                     onSelectionChanged(
                         SpannableStringBuilder(editableText),
                         start,
                         end
                     )
                 }
+                onEditTextReady(this)  // hand reference up immediately after setup
             }
         },
         update = { editText ->
-            // Only update if content actually changed to avoid cursor jumping
             if (editText.text.toString() != content.toString()) {
                 editText.setText(content)
                 editText.setSelection(content.length)
@@ -90,7 +87,8 @@ private fun PreviewRichTextEditorEmpty() {
         RichTextEditor(
             content = SpannableStringBuilder(""),
             onContentChanged = {},
-            onSelectionChanged = { _, _, _ -> }
+            onSelectionChanged = { _, _, _ -> },
+            onEditTextReady = {}
         )
     }
 }
@@ -102,7 +100,8 @@ private fun PreviewRichTextEditorWithContent() {
         RichTextEditor(
             content = SpannableStringBuilder("The quick brown fox jumps over the lazy dog."),
             onContentChanged = {},
-            onSelectionChanged = { _, _, _ -> }
+            onSelectionChanged = { _, _, _ -> },
+            onEditTextReady = {}
         )
     }
 }

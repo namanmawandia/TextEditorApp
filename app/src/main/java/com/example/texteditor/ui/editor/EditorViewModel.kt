@@ -44,9 +44,7 @@ class EditorViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         title = doc.title,
-                        content = SpannableStringBuilder(
-                            SpanSerializer.fromHtml(doc.content)
-                        )
+                        content = SpanSerializer.fromHtml(doc.content)
                     )
                 }
             }
@@ -57,95 +55,205 @@ class EditorViewModel @Inject constructor(
         _uiState.update { it.copy(title = newTitle, isSaved = false) }
     }
 
-    // Called whenever selection changes in the editor — updates toolbar toggle states
     fun onSelectionChanged(spannable: Spannable, start: Int, end: Int) {
         val s = minOf(start, end)
         val e = maxOf(start, end)
+        updateToolbarState(spannable, s, e)
+    }
+
+    // Called after every span operation to immediately reflect toolbar state
+    private fun updateToolbarState(spannable: Spannable, start: Int, end: Int) {
         _uiState.update {
             it.copy(
-                isBold = SpanSerializer.hasBold(spannable, s, e),
-                isItalic = SpanSerializer.hasItalic(spannable, s, e),
-                isUnderline = SpanSerializer.hasUnderline(spannable, s, e),
-                isStrikethrough = SpanSerializer.hasStrikethrough(spannable, s, e),
-                activeForegroundColor = SpanSerializer.getForegroundColor(spannable, s, e),
-                activeHighlightColor = SpanSerializer.getHighlightColor(spannable, s, e)
+                isBold = SpanSerializer.hasBold(spannable, start, end),
+                isItalic = SpanSerializer.hasItalic(spannable, start, end),
+                isUnderline = SpanSerializer.hasUnderline(spannable, start, end),
+                isStrikethrough = SpanSerializer.hasStrikethrough(spannable, start, end),
+                activeForegroundColor = SpanSerializer.getForegroundColor(spannable, start, end),
+                activeHighlightColor = SpanSerializer.getHighlightColor(spannable, start, end)
             )
         }
     }
 
-    fun toggleBold(spannable: SpannableStringBuilder, start: Int, end: Int) =
-        toggleSpan(spannable, start, end,
-            has = { SpanSerializer.hasBold(it, start, end) },
-            add = { StyleSpan(Typeface.BOLD) }
-        )
+    fun toggleBold(spannable: SpannableStringBuilder, start: Int, end: Int) {
+        toggleStyleSpan(spannable, start, end, Typeface.BOLD)
+        updateToolbarState(spannable, start, end)
+    }
 
-    fun toggleItalic(spannable: SpannableStringBuilder, start: Int, end: Int) =
-        toggleSpan(spannable, start, end,
-            has = { SpanSerializer.hasItalic(it, start, end) },
-            add = { StyleSpan(Typeface.ITALIC) }
-        )
+    fun toggleItalic(spannable: SpannableStringBuilder, start: Int, end: Int) {
+        toggleStyleSpan(spannable, start, end, Typeface.ITALIC)
+        updateToolbarState(spannable, start, end)
+    }
 
-    fun toggleUnderline(spannable: SpannableStringBuilder, start: Int, end: Int) =
-        toggleSpan(spannable, start, end,
-            has = { SpanSerializer.hasUnderline(it, start, end) },
-            add = { UnderlineSpan() }
+    fun toggleUnderline(spannable: SpannableStringBuilder, start: Int, end: Int) {
+        toggleGenericSpan(
+            spannable, start, end,
+            has = SpanSerializer.hasUnderline(spannable, start, end),
+            spanClass = UnderlineSpan::class.java,
+            make = { UnderlineSpan() }
         )
+        updateToolbarState(spannable, start, end)
+    }
 
-    fun toggleStrikethrough(spannable: SpannableStringBuilder, start: Int, end: Int) =
-        toggleSpan(spannable, start, end,
-            has = { SpanSerializer.hasStrikethrough(it, start, end) },
-            add = { StrikethroughSpan() }
+    fun toggleStrikethrough(spannable: SpannableStringBuilder, start: Int, end: Int) {
+        toggleGenericSpan(
+            spannable, start, end,
+            has = SpanSerializer.hasStrikethrough(spannable, start, end),
+            spanClass = StrikethroughSpan::class.java,
+            make = { StrikethroughSpan() }
         )
+        updateToolbarState(spannable, start, end)
+    }
 
     fun applyForegroundColor(spannable: SpannableStringBuilder, start: Int, end: Int, color: Int) {
-        if (start >= end) return
-        spannable.getSpans(start, end, ForegroundColorSpan::class.java)
-            .forEach { spannable.removeSpan(it) }
-        spannable.setSpan(ForegroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        notifyContentChanged(spannable)
+        if (start >= end || start < 0 || end > spannable.length) return
+        removeSpansInRange(spannable, start, end, ForegroundColorSpan::class.java)
+        spannable.setSpan(
+            ForegroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE
+        )
+        updateToolbarState(spannable, start, end)
     }
 
     fun applyHighlightColor(spannable: SpannableStringBuilder, start: Int, end: Int, color: Int) {
-        if (start >= end) return
-        spannable.getSpans(start, end, BackgroundColorSpan::class.java)
-            .forEach { spannable.removeSpan(it) }
-        spannable.setSpan(BackgroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        notifyContentChanged(spannable)
+        if (start >= end || start < 0 || end > spannable.length) return
+        removeSpansInRange(spannable, start, end, BackgroundColorSpan::class.java)
+        spannable.setSpan(
+            BackgroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE
+        )
+        updateToolbarState(spannable, start, end)
     }
 
     fun removeHighlight(spannable: SpannableStringBuilder, start: Int, end: Int) {
-        if (start >= end) return
-        spannable.getSpans(start, end, BackgroundColorSpan::class.java)
-            .forEach { spannable.removeSpan(it) }
-        notifyContentChanged(spannable)
+        if (start >= end || start < 0 || end > spannable.length) return
+        removeSpansInRange(spannable, start, end, BackgroundColorSpan::class.java)
+        updateToolbarState(spannable, start, end)
     }
 
-    private fun toggleSpan(
+    // Handles StyleSpan (Bold/Italic) — needs special care since multiple StyleSpans can coexist
+    private fun toggleStyleSpan(
         spannable: SpannableStringBuilder,
         start: Int,
         end: Int,
-        has: (SpannableStringBuilder) -> Boolean,
-        add: () -> Any
+        style: Int
     ) {
-        if (start >= end) return
-        if (has(spannable)) {
-            val spanClass = add()::class.java
-            spannable.getSpans(start, end, spanClass).forEach { spannable.removeSpan(it) }
+        if (start >= end || start < 0 || end > spannable.length) return
+        val isActive = if (style == Typeface.BOLD)
+            SpanSerializer.hasBold(spannable, start, end)
+        else
+            SpanSerializer.hasItalic(spannable, start, end)
+
+        if (isActive) {
+            // Split existing spans around the selection
+            splitAndRemoveStyleSpan(spannable, start, end, style)
         } else {
-            spannable.setSpan(add(), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(style), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
         }
-        notifyContentChanged(spannable)
     }
 
-    private fun notifyContentChanged(spannable: SpannableStringBuilder) {
-        _uiState.update { it.copy(content = spannable, isSaved = false) }
+    // Handles simple spans (Underline, Strikethrough)
+    private fun <T : Any> toggleGenericSpan(
+        spannable: SpannableStringBuilder,
+        start: Int,
+        end: Int,
+        has: Boolean,
+        spanClass: Class<T>,
+        make: () -> T
+    ) {
+        if (start >= end || start < 0 || end > spannable.length) return
+        if (has) {
+            splitAndRemoveGenericSpan(spannable, start, end, spanClass, make)
+        } else {
+            spannable.setSpan(make(), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
+        }
     }
 
-    fun saveDocument() {
+    // Splits a StyleSpan around [start, end) — preserves formatting outside selection
+    private fun splitAndRemoveStyleSpan(
+        spannable: SpannableStringBuilder,
+        start: Int,
+        end: Int,
+        style: Int
+    ) {
+        val spans = spannable.getSpans(start, end, StyleSpan::class.java)
+            .filter { it.style == style }
+
+        for (span in spans) {
+            val spanStart = spannable.getSpanStart(span)
+            val spanEnd = spannable.getSpanEnd(span)
+            spannable.removeSpan(span)
+
+            // Re-apply span on the part BEFORE the selection
+            if (spanStart < start) {
+                spannable.setSpan(
+                    StyleSpan(style), spanStart, start, Spannable.SPAN_EXCLUSIVE_INCLUSIVE
+                )
+            }
+            // Re-apply span on the part AFTER the selection
+            if (spanEnd > end) {
+                spannable.setSpan(
+                    StyleSpan(style), end, spanEnd, Spannable.SPAN_EXCLUSIVE_INCLUSIVE
+                )
+            }
+        }
+    }
+
+    private fun <T : Any> splitAndRemoveGenericSpan(
+        spannable: SpannableStringBuilder,
+        start: Int,
+        end: Int,
+        spanClass: Class<T>,
+        make: () -> T
+    ) {
+        val spans = spannable.getSpans(start, end, spanClass)
+
+        for (span in spans) {
+            val spanStart = spannable.getSpanStart(span)
+            val spanEnd = spannable.getSpanEnd(span)
+            spannable.removeSpan(span)
+
+            if (spanStart < start) {
+                spannable.setSpan(make(), spanStart, start, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
+            }
+            if (spanEnd > end) {
+                spannable.setSpan(make(), end, spanEnd, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
+            }
+        }
+    }
+
+    // Removes spans in range while preserving parts outside the range
+    private fun <T : Any> removeSpansInRange(
+        spannable: SpannableStringBuilder,
+        start: Int,
+        end: Int,
+        spanClass: Class<T>
+    ) {
+        val spans = spannable.getSpans(start, end, spanClass)
+        for (span in spans) {
+            val spanStart = spannable.getSpanStart(span)
+            val spanEnd = spannable.getSpanEnd(span)
+            spannable.removeSpan(span)
+            if (spanStart < start) {
+                spannable.setSpan(
+                    spannable.javaClass.getDeclaredConstructor().newInstance(),
+                    spanStart, start,
+                    Spannable.SPAN_EXCLUSIVE_INCLUSIVE
+                )
+            }
+            if (spanEnd > end) {
+                spannable.setSpan(
+                    spannable.javaClass.getDeclaredConstructor().newInstance(),
+                    end, spanEnd,
+                    Spannable.SPAN_EXCLUSIVE_INCLUSIVE
+                )
+            }
+        }
+    }
+
+    fun saveDocument(liveContent: SpannableStringBuilder) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
             val state = _uiState.value
-            val html = SpanSerializer.toHtml(state.content)
+            val html = SpanSerializer.toHtml(liveContent)
             if (state.documentId == -1L) {
                 val newId = repository.saveDocument(
                     title = state.title.ifBlank { "Untitled" },

@@ -38,6 +38,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.texteditor.data.SpanSerializer
 import com.example.texteditor.data.db.DocumentEntity
 import com.example.texteditor.ui.theme.RichTextEditorTheme
 import java.text.SimpleDateFormat
@@ -190,7 +191,8 @@ private fun DocumentCard(
             if (document.content.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = document.content,
+                    text = SpanSerializer.fromHtml(document.content)
+                        .toString().trim(),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,

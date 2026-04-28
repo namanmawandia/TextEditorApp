@@ -1,6 +1,7 @@
 package com.example.texteditor.ui.editor
 
 import android.text.SpannableStringBuilder
+import android.widget.EditText
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,7 +45,7 @@ fun EditorScreen(
 
     EditorContent(
         title = uiState.title,
-        content = uiState.content,
+        initialContent = uiState.content,
         isBold = uiState.isBold,
         isItalic = uiState.isItalic,
         isUnderline = uiState.isUnderline,
@@ -53,7 +54,6 @@ fun EditorScreen(
         activeHighlightColor = uiState.activeHighlightColor,
         isSaved = uiState.isSaved,
         onTitleChange = viewModel::onTitleChange,
-        onContentChanged = { /* content managed via spannable directly */ },
         onSelectionChanged = { spannable, start, end ->
             viewModel.onSelectionChanged(spannable, start, end)
         },
@@ -78,7 +78,9 @@ fun EditorScreen(
         onHighlightRemoved = { content, start, end ->
             viewModel.removeHighlight(content, start, end)
         },
-        onSave = viewModel::saveDocument,
+        onSave = { liveContent ->
+            viewModel.saveDocument(liveContent)
+        },
         onNavigateBack = onNavigateBack
     )
 }
@@ -87,7 +89,7 @@ fun EditorScreen(
 @Composable
 fun EditorContent(
     title: String,
-    content: SpannableStringBuilder,
+    initialContent: SpannableStringBuilder,
     isBold: Boolean,
     isItalic: Boolean,
     isUnderline: Boolean,
@@ -96,7 +98,6 @@ fun EditorContent(
     activeHighlightColor: Int?,
     isSaved: Boolean,
     onTitleChange: (String) -> Unit,
-    onContentChanged: (SpannableStringBuilder) -> Unit,
     onSelectionChanged: (SpannableStringBuilder, Int, Int) -> Unit,
     onBoldClick: (SpannableStringBuilder, Int, Int) -> Unit,
     onItalicClick: (SpannableStringBuilder, Int, Int) -> Unit,
@@ -105,14 +106,15 @@ fun EditorContent(
     onTextColorSelected: (SpannableStringBuilder, Int, Int, Int) -> Unit,
     onHighlightColorSelected: (SpannableStringBuilder, Int, Int, Int) -> Unit,
     onHighlightRemoved: (SpannableStringBuilder, Int, Int) -> Unit,
-    onSave: () -> Unit,
+    onSave: (SpannableStringBuilder) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Track current selection for toolbar actions
     var selectionStart by remember { mutableIntStateOf(0) }
     var selectionEnd by remember { mutableIntStateOf(0) }
+    val liveContent = remember { mutableStateOf(SpannableStringBuilder(initialContent)) }
+    val editTextRef = remember { mutableStateOf<EditText?>(null) }
 
     var colorPickerMode by remember { mutableStateOf<ColorPickerMode?>(null) }
 
@@ -153,7 +155,12 @@ fun EditorContent(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onSave) {
+                    IconButton(onClick = {
+                        val current = editTextRef.value?.editableText
+                            ?.let { SpannableStringBuilder(it) }
+                            ?: liveContent.value
+                        onSave(current)
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Save"
@@ -173,11 +180,29 @@ fun EditorContent(
                 isStrikethrough = isStrikethrough,
                 activeForegroundColor = activeForegroundColor,
                 activeHighlightColor = activeHighlightColor,
-                onBoldClick = { onBoldClick(content, selectionStart, selectionEnd) },
-                onItalicClick = { onItalicClick(content, selectionStart, selectionEnd) },
-                onUnderlineClick = { onUnderlineClick(content, selectionStart, selectionEnd) },
+                onBoldClick = {
+                    editTextRef.value?.editableText?.let { editable ->
+                        onBoldClick(editable as SpannableStringBuilder, selectionStart, selectionEnd)
+                        editTextRef.value?.setSelection(selectionStart, selectionEnd)
+                    }
+                },
+                onItalicClick = {
+                    editTextRef.value?.editableText?.let { editable ->
+                        onItalicClick(editable as SpannableStringBuilder, selectionStart, selectionEnd)
+                        editTextRef.value?.setSelection(selectionStart, selectionEnd)
+                    }
+                },
+                onUnderlineClick = {
+                    editTextRef.value?.editableText?.let { editable ->
+                        onUnderlineClick(editable as SpannableStringBuilder, selectionStart, selectionEnd)
+                        editTextRef.value?.setSelection(selectionStart, selectionEnd)
+                    }
+                },
                 onStrikethroughClick = {
-                    onStrikethroughClick(content, selectionStart, selectionEnd)
+                    editTextRef.value?.editableText?.let { editable ->
+                        onStrikethroughClick(editable as SpannableStringBuilder, selectionStart, selectionEnd)
+                        editTextRef.value?.setSelection(selectionStart, selectionEnd)
+                    }
                 },
                 onTextColorClick = { colorPickerMode = ColorPickerMode.TextColor },
                 onHighlightClick = { colorPickerMode = ColorPickerMode.Highlight },
@@ -191,12 +216,18 @@ fun EditorContent(
                 .padding(paddingValues)
         ) {
             RichTextEditor(
-                content = content,
-                onContentChanged = onContentChanged,
+                content = initialContent,
+                onContentChanged = { updated ->
+                    liveContent.value = updated
+                },
                 onSelectionChanged = { spannable, start, end ->
                     selectionStart = start
                     selectionEnd = end
+                    liveContent.value = spannable
                     onSelectionChanged(spannable, start, end)
+                },
+                onEditTextReady = { editText ->
+                    editTextRef.value = editText
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -205,19 +236,28 @@ fun EditorContent(
         }
     }
 
-    // Color picker bottom sheet
     colorPickerMode?.let { mode ->
         ColorPickerBottomSheet(
             mode = mode,
             onColorSelected = { color ->
-                when (mode) {
-                    ColorPickerMode.TextColor ->
-                        onTextColorSelected(content, selectionStart, selectionEnd, color)
-                    ColorPickerMode.Highlight ->
-                        onHighlightColorSelected(content, selectionStart, selectionEnd, color)
+                editTextRef.value?.editableText?.let { editable ->
+                    val ssb = SpannableStringBuilder(editable)
+                    when (mode) {
+                        ColorPickerMode.TextColor ->
+                            onTextColorSelected(ssb, selectionStart, selectionEnd, color)
+
+                        ColorPickerMode.Highlight ->
+                            onHighlightColorSelected(ssb, selectionStart, selectionEnd, color)
+                    }
+                    editTextRef.value?.setSelection(selectionStart, selectionEnd)
                 }
             },
-            onClear = { onHighlightRemoved(content, selectionStart, selectionEnd) },
+            onClear = {
+                editTextRef.value?.editableText?.let { editable ->
+                    onHighlightRemoved(editable as SpannableStringBuilder, selectionStart, selectionEnd)
+                    editTextRef.value?.setSelection(selectionStart, selectionEnd)
+                }
+            },
             onDismiss = { colorPickerMode = null }
         )
     }
@@ -231,7 +271,7 @@ private fun PreviewEditorEmpty() {
     RichTextEditorTheme {
         EditorContent(
             title = "",
-            content = SpannableStringBuilder(""),
+            initialContent = SpannableStringBuilder(""),
             isBold = false,
             isItalic = false,
             isUnderline = false,
@@ -240,7 +280,6 @@ private fun PreviewEditorEmpty() {
             activeHighlightColor = null,
             isSaved = false,
             onTitleChange = {},
-            onContentChanged = {},
             onSelectionChanged = { _, _, _ -> },
             onBoldClick = { _, _, _ -> },
             onItalicClick = { _, _, _ -> },
@@ -261,7 +300,7 @@ private fun PreviewEditorWithContent() {
     RichTextEditorTheme {
         EditorContent(
             title = "Meeting Notes",
-            content = SpannableStringBuilder(
+            initialContent = SpannableStringBuilder(
                 "Discussed Q3 roadmap and upcoming feature releases."
             ),
             isBold = true,
@@ -272,7 +311,6 @@ private fun PreviewEditorWithContent() {
             activeHighlightColor = null,
             isSaved = false,
             onTitleChange = {},
-            onContentChanged = {},
             onSelectionChanged = { _, _, _ -> },
             onBoldClick = { _, _, _ -> },
             onItalicClick = { _, _, _ -> },
@@ -293,7 +331,7 @@ private fun PreviewEditorDark() {
     RichTextEditorTheme(darkTheme = true) {
         EditorContent(
             title = "My Notes",
-            content = SpannableStringBuilder("Dark mode content preview."),
+            initialContent = SpannableStringBuilder("Dark mode content preview."),
             isBold = false,
             isItalic = true,
             isUnderline = false,
@@ -302,7 +340,6 @@ private fun PreviewEditorDark() {
             activeHighlightColor = null,
             isSaved = false,
             onTitleChange = {},
-            onContentChanged = {},
             onSelectionChanged = { _, _, _ -> },
             onBoldClick = { _, _, _ -> },
             onItalicClick = { _, _, _ -> },
