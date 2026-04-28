@@ -107,7 +107,12 @@ class EditorViewModel @Inject constructor(
 
     fun applyForegroundColor(spannable: SpannableStringBuilder, start: Int, end: Int, color: Int) {
         if (start >= end || start < 0 || end > spannable.length) return
-        removeSpansInRange(spannable, start, end, ForegroundColorSpan::class.java)
+        splitColorSpan(
+            spannable, start, end,
+            spanClass = ForegroundColorSpan::class.java,
+            makeWithColor = { ForegroundColorSpan(it) },
+            getColor = { it.foregroundColor }
+        )
         spannable.setSpan(
             ForegroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE
         )
@@ -116,7 +121,12 @@ class EditorViewModel @Inject constructor(
 
     fun applyHighlightColor(spannable: SpannableStringBuilder, start: Int, end: Int, color: Int) {
         if (start >= end || start < 0 || end > spannable.length) return
-        removeSpansInRange(spannable, start, end, BackgroundColorSpan::class.java)
+        splitColorSpan(
+            spannable, start, end,
+            spanClass = BackgroundColorSpan::class.java,
+            makeWithColor = { BackgroundColorSpan(it) },
+            getColor = { it.backgroundColor }
+        )
         spannable.setSpan(
             BackgroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE
         )
@@ -125,8 +135,43 @@ class EditorViewModel @Inject constructor(
 
     fun removeHighlight(spannable: SpannableStringBuilder, start: Int, end: Int) {
         if (start >= end || start < 0 || end > spannable.length) return
-        removeSpansInRange(spannable, start, end, BackgroundColorSpan::class.java)
+        splitColorSpan(
+            spannable, start, end,
+            spanClass = BackgroundColorSpan::class.java,
+            makeWithColor = { BackgroundColorSpan(it) },
+            getColor = { it.backgroundColor }
+        )
         updateToolbarState(spannable, start, end)
+    }
+
+    private fun <T : Any> splitColorSpan(
+        spannable: SpannableStringBuilder,
+        start: Int,
+        end: Int,
+        spanClass: Class<T>,
+        makeWithColor: (Int) -> T,
+        getColor: (T) -> Int
+    ) {
+        val spans = spannable.getSpans(start, end, spanClass)
+        for (span in spans) {
+            val spanStart = spannable.getSpanStart(span)
+            val spanEnd = spannable.getSpanEnd(span)
+            val color = getColor(span)
+            spannable.removeSpan(span)
+
+            // Preserve the part before the selection with the original color
+            if (spanStart < start) {
+                spannable.setSpan(
+                    makeWithColor(color), spanStart, start, Spannable.SPAN_EXCLUSIVE_INCLUSIVE
+                )
+            }
+            // Preserve the part after the selection with the original color
+            if (spanEnd > end) {
+                spannable.setSpan(
+                    makeWithColor(color), end, spanEnd, Spannable.SPAN_EXCLUSIVE_INCLUSIVE
+                )
+            }
+        }
     }
 
     // Handles StyleSpan (Bold/Italic) — needs special care since multiple StyleSpans can coexist
@@ -146,7 +191,7 @@ class EditorViewModel @Inject constructor(
             // Split existing spans around the selection
             splitAndRemoveStyleSpan(spannable, start, end, style)
         } else {
-            spannable.setSpan(StyleSpan(style), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
+            spannable.setSpan(StyleSpan(style), start, end, Spannable.SPAN_INCLUSIVE_INCLUSIVE)
         }
     }
 
@@ -163,7 +208,7 @@ class EditorViewModel @Inject constructor(
         if (has) {
             splitAndRemoveGenericSpan(spannable, start, end, spanClass, make)
         } else {
-            spannable.setSpan(make(), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
+            spannable.setSpan(make(), start, end, Spannable.SPAN_INCLUSIVE_INCLUSIVE)
         }
     }
 
@@ -216,35 +261,6 @@ class EditorViewModel @Inject constructor(
             }
             if (spanEnd > end) {
                 spannable.setSpan(make(), end, spanEnd, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
-            }
-        }
-    }
-
-    // Removes spans in range while preserving parts outside the range
-    private fun <T : Any> removeSpansInRange(
-        spannable: SpannableStringBuilder,
-        start: Int,
-        end: Int,
-        spanClass: Class<T>
-    ) {
-        val spans = spannable.getSpans(start, end, spanClass)
-        for (span in spans) {
-            val spanStart = spannable.getSpanStart(span)
-            val spanEnd = spannable.getSpanEnd(span)
-            spannable.removeSpan(span)
-            if (spanStart < start) {
-                spannable.setSpan(
-                    spannable.javaClass.getDeclaredConstructor().newInstance(),
-                    spanStart, start,
-                    Spannable.SPAN_EXCLUSIVE_INCLUSIVE
-                )
-            }
-            if (spanEnd > end) {
-                spannable.setSpan(
-                    spannable.javaClass.getDeclaredConstructor().newInstance(),
-                    end, spanEnd,
-                    Spannable.SPAN_EXCLUSIVE_INCLUSIVE
-                )
             }
         }
     }

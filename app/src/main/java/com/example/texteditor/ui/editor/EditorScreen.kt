@@ -240,22 +240,22 @@ fun EditorContent(
         ColorPickerBottomSheet(
             mode = mode,
             onColorSelected = { color ->
-                editTextRef.value?.editableText?.let { editable ->
-                    val ssb = SpannableStringBuilder(editable)
+                editTextRef.value?.let { editText ->
+                    val editable = editText.editableText as SpannableStringBuilder
                     when (mode) {
                         ColorPickerMode.TextColor ->
-                            onTextColorSelected(ssb, selectionStart, selectionEnd, color)
-
+                            onTextColorSelected(editable, selectionStart, selectionEnd, color)
                         ColorPickerMode.Highlight ->
-                            onHighlightColorSelected(ssb, selectionStart, selectionEnd, color)
+                            onHighlightColorSelected(editable, selectionStart, selectionEnd, color)
                     }
-                    editTextRef.value?.setSelection(selectionStart, selectionEnd)
+                    editText.setSelection(selectionStart, selectionEnd)
                 }
             },
             onClear = {
-                editTextRef.value?.editableText?.let { editable ->
-                    onHighlightRemoved(editable as SpannableStringBuilder, selectionStart, selectionEnd)
-                    editTextRef.value?.setSelection(selectionStart, selectionEnd)
+                editTextRef.value?.let { editText ->
+                    val editable = editText.editableText as SpannableStringBuilder
+                    onHighlightRemoved(editable, selectionStart, selectionEnd)
+                    editText.setSelection(selectionStart, selectionEnd)
                 }
             },
             onDismiss = { colorPickerMode = null }
