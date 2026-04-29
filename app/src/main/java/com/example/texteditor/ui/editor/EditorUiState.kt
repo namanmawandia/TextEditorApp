@@ -13,5 +13,13 @@ data class EditorUiState(
     val activeForegroundColor: Int? = null,
     val activeHighlightColor: Int? = null,
     val isSaving: Boolean = false,
-    val isSaved: Boolean = false
+    val isSaved: Boolean = false,
+    val typingBold: Boolean = false,
+    val typingItalic: Boolean = false,
+    val typingUnderline: Boolean = false,
+    val typingStrikethrough: Boolean = false,
+    val typingTextColor: Int? = null,
+    val typingHighlightColor: Int? = null,
+    val selectionStart: Int = 0,
+    val selectionEnd: Int = 0
 )

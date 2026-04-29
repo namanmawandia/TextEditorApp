@@ -34,7 +34,7 @@ enum class ColorPickerMode { TextColor, Highlight }
 
 private val textColors = listOf(
     Color.Black, Color.DarkGray, Color.Gray,
-    Color(0xFFE53935), Color(0xFFD81B60), Color(0xFF8E24AA),
+    Color(0xFFFFFFFF), Color(0xFFD81B60), Color(0xFF8E24AA),
     Color(0xFF1E88E5), Color(0xFF00ACC1), Color(0xFF43A047),
     Color(0xFFFDD835), Color(0xFFFB8C00), Color(0xFF6D4C41)
 )
