@@ -25,6 +25,7 @@ import com.example.texteditor.ui.theme.RichTextEditorTheme
 private class RichEditText(context: Context) : EditText(context) {
     var selectionChangeListener: ((Int, Int) -> Unit)? = null
     var lastContent: Spannable = SpannableStringBuilder("")
+    var isUpdatingProgrammatically: Boolean = false
 
     // Formatting state for "typing mode" (applied to next typed chars)
     var typingBold: Boolean = false
@@ -75,14 +76,17 @@ fun RichTextEditor(
                 setSelection(content.length)
 
                 doOnTextChanged { text, start, before, count ->
-                    val oldContent = (this as? RichEditText)?.lastContent ?: content
+                    // Skip surgical formatting if we are updating the text programmatically (e.g. loading)
+                    if (isUpdatingProgrammatically) return@doOnTextChanged
+                    
+                    val oldContent = lastContent
                     if (count > 0 && text is SpannableStringBuilder) {
                         val end = start + count
                         val beforeRangeEnd = start + before
 
                         /**
                          * Surgical formatting logic:
-                         * 1. Clears current spans in the modified range [start, end).
+                         * 1. Clears current spans in the modified range [start, end) to avoid unwanted expansion.
                          * 2. RESTORES original spans for the 'before' part [start, start + before) 
                          *    from oldContent (to fix predictive text stripping spans).
                          * 3. APPLIES current toggle state to the 'new' characters [start + before, end).
@@ -90,37 +94,43 @@ fun RichTextEditor(
                         fun <T : Any> restoreAndApply(
                             isToggledOn: Boolean,
                             spanClass: Class<T>,
-                            createSpan: (T?) -> T,
+                            createFromOld: (T) -> T,
+                            createNew: () -> T,
                             filter: (T) -> Boolean = { true }
                         ) {
                             // 1. Clear
                             text.getSpans(start, end, spanClass).filter(filter).forEach { text.removeSpan(it) }
 
-                            // 2. Restore (for characters that were already there)
+                            // 2. Restore
                             if (before > 0) {
                                 val oldSpans = oldContent.getSpans(start, beforeRangeEnd, spanClass).filter(filter)
                                 for (span in oldSpans) {
                                     val s = oldContent.getSpanStart(span).coerceAtLeast(start)
                                     val e = oldContent.getSpanEnd(span).coerceAtMost(beforeRangeEnd)
                                     if (s < e) {
-                                        text.setSpan(createSpan(span), s, e, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                                        text.setSpan(createFromOld(span), s, e, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                                     }
                                 }
                             }
 
-                            // 3. Apply (for newly typed characters)
+                            // 3. Apply
                             if (isToggledOn && end > beforeRangeEnd) {
-                                text.setSpan(createSpan(null), beforeRangeEnd, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                                text.setSpan(createNew(), beforeRangeEnd, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                             }
                         }
 
-                        restoreAndApply(this.typingBold, StyleSpan::class.java, { StyleSpan(it?.style ?: Typeface.BOLD) }, { it.style == Typeface.BOLD })
-                        restoreAndApply(this.typingItalic, StyleSpan::class.java, { StyleSpan(it?.style ?: Typeface.ITALIC) }, { it.style == Typeface.ITALIC })
-                        restoreAndApply(this.typingUnderline, UnderlineSpan::class.java, { UnderlineSpan() })
-                        restoreAndApply(this.typingStrikethrough, StrikethroughSpan::class.java, { StrikethroughSpan() })
+                        restoreAndApply(this.typingBold, StyleSpan::class.java, { StyleSpan(it.style) }, { StyleSpan(Typeface.BOLD) }, { it.style == Typeface.BOLD })
+                        restoreAndApply(this.typingItalic, StyleSpan::class.java, { StyleSpan(it.style) }, { StyleSpan(Typeface.ITALIC) }, { it.style == Typeface.ITALIC })
+                        restoreAndApply(this.typingUnderline, UnderlineSpan::class.java, { UnderlineSpan() }, { UnderlineSpan() })
+                        restoreAndApply(this.typingStrikethrough, StrikethroughSpan::class.java, { StrikethroughSpan() }, { StrikethroughSpan() })
                         
-                        restoreAndApply(this.typingTextColor != null, ForegroundColorSpan::class.java, { it ?: ForegroundColorSpan(this.typingTextColor ?: 0) })
-                        restoreAndApply(this.typingHighlightColor != null, BackgroundColorSpan::class.java, { it ?: BackgroundColorSpan(this.typingHighlightColor ?: 0) })
+                        this.typingTextColor?.let { color ->
+                            restoreAndApply(true, ForegroundColorSpan::class.java, { ForegroundColorSpan(it.foregroundColor) }, { ForegroundColorSpan(color) })
+                        } ?: restoreAndApply(false, ForegroundColorSpan::class.java, { ForegroundColorSpan(it.foregroundColor) }, { ForegroundColorSpan(0) })
+
+                        this.typingHighlightColor?.let { color ->
+                            restoreAndApply(true, BackgroundColorSpan::class.java, { BackgroundColorSpan(it.backgroundColor) }, { BackgroundColorSpan(color) })
+                        } ?: restoreAndApply(false, BackgroundColorSpan::class.java, { BackgroundColorSpan(it.backgroundColor) }, { BackgroundColorSpan(0) })
                     }
 
                     onContentChanged(SpannableStringBuilder(text ?: ""))
@@ -141,17 +151,20 @@ fun RichTextEditor(
                 editText.typingTextColor = typingTextColor
                 editText.typingHighlightColor = typingHighlightColor
                 
-                // Store the latest state to compare against during text changes
                 editText.lastContent = content
             }
 
             if (editText.text.toString() != content.toString()) {
+                if (editText is RichEditText) editText.isUpdatingProgrammatically = true
+                
                 val selectionStart = editText.selectionStart
                 val selectionEnd = editText.selectionEnd
                 editText.setText(content)
                 val safeStart = selectionStart.coerceIn(0, content.length)
                 val safeEnd = selectionEnd.coerceIn(0, content.length)
                 editText.setSelection(safeStart, safeEnd)
+                
+                if (editText is RichEditText) editText.isUpdatingProgrammatically = false
             }
         }
     )
