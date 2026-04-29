@@ -76,21 +76,14 @@ fun RichTextEditor(
                 setSelection(content.length)
 
                 doOnTextChanged { text, start, before, count ->
-                    // Skip surgical formatting if we are updating the text programmatically (e.g. loading)
                     if (isUpdatingProgrammatically) return@doOnTextChanged
-                    
-                    val oldContent = lastContent
+
+                    val oldContent = lastContent  // capture before any changes
+
                     if (count > 0 && text is SpannableStringBuilder) {
                         val end = start + count
                         val beforeRangeEnd = start + before
 
-                        /**
-                         * Surgical formatting logic:
-                         * 1. Clears current spans in the modified range [start, end) to avoid unwanted expansion.
-                         * 2. RESTORES original spans for the 'before' part [start, start + before) 
-                         *    from oldContent (to fix predictive text stripping spans).
-                         * 3. APPLIES current toggle state to the 'new' characters [start + before, end).
-                         */
                         fun <T : Any> restoreAndApply(
                             isToggledOn: Boolean,
                             spanClass: Class<T>,
@@ -98,10 +91,8 @@ fun RichTextEditor(
                             createNew: () -> T,
                             filter: (T) -> Boolean = { true }
                         ) {
-                            // 1. Clear
                             text.getSpans(start, end, spanClass).filter(filter).forEach { text.removeSpan(it) }
 
-                            // 2. Restore
                             if (before > 0) {
                                 val oldSpans = oldContent.getSpans(start, beforeRangeEnd, spanClass).filter(filter)
                                 for (span in oldSpans) {
@@ -113,7 +104,6 @@ fun RichTextEditor(
                                 }
                             }
 
-                            // 3. Apply
                             if (isToggledOn && end > beforeRangeEnd) {
                                 text.setSpan(createNew(), beforeRangeEnd, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                             }
@@ -123,7 +113,7 @@ fun RichTextEditor(
                         restoreAndApply(this.typingItalic, StyleSpan::class.java, { StyleSpan(it.style) }, { StyleSpan(Typeface.ITALIC) }, { it.style == Typeface.ITALIC })
                         restoreAndApply(this.typingUnderline, UnderlineSpan::class.java, { UnderlineSpan() }, { UnderlineSpan() })
                         restoreAndApply(this.typingStrikethrough, StrikethroughSpan::class.java, { StrikethroughSpan() }, { StrikethroughSpan() })
-                        
+
                         this.typingTextColor?.let { color ->
                             restoreAndApply(true, ForegroundColorSpan::class.java, { ForegroundColorSpan(it.foregroundColor) }, { ForegroundColorSpan(color) })
                         } ?: restoreAndApply(false, ForegroundColorSpan::class.java, { ForegroundColorSpan(it.foregroundColor) }, { ForegroundColorSpan(0) })
@@ -132,6 +122,8 @@ fun RichTextEditor(
                             restoreAndApply(true, BackgroundColorSpan::class.java, { BackgroundColorSpan(it.backgroundColor) }, { BackgroundColorSpan(color) })
                         } ?: restoreAndApply(false, BackgroundColorSpan::class.java, { BackgroundColorSpan(it.backgroundColor) }, { BackgroundColorSpan(0) })
                     }
+
+                    lastContent = SpannableStringBuilder(text ?: "")
 
                     onContentChanged(SpannableStringBuilder(text ?: ""))
                 }
@@ -150,21 +142,20 @@ fun RichTextEditor(
                 editText.typingStrikethrough = typingStrikethrough
                 editText.typingTextColor = typingTextColor
                 editText.typingHighlightColor = typingHighlightColor
-                
-                editText.lastContent = content
             }
 
             if (editText.text.toString() != content.toString()) {
                 if (editText is RichEditText) editText.isUpdatingProgrammatically = true
-                
                 val selectionStart = editText.selectionStart
                 val selectionEnd = editText.selectionEnd
                 editText.setText(content)
                 val safeStart = selectionStart.coerceIn(0, content.length)
                 val safeEnd = selectionEnd.coerceIn(0, content.length)
                 editText.setSelection(safeStart, safeEnd)
-                
-                if (editText is RichEditText) editText.isUpdatingProgrammatically = false
+                if (editText is RichEditText) {
+                    editText.lastContent = SpannableStringBuilder(content)
+                    editText.isUpdatingProgrammatically = false
+                }
             }
         }
     )
