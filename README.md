@@ -1,52 +1,114 @@
-# Jetpack Compose Rich Text Editor
+# Rich Text Editor App
 
-A high-performance, custom Rich Text Editor for Android built using **Jetpack Compose** and the **Android Spannable API**. 
+A feature-rich text editor Android application built with **Kotlin** and **Jetpack Compose**, designed for creating and editing beautifully formatted documents with an intuitive user interface.
 
-This project demonstrates a sophisticated bridge between modern Compose UI and legacy `EditText` capabilities to achieve real-time text formatting that native `TextField` currently struggles to handle.
+## 📋 Overview
 
-## 🚀 The Challenge
-Handling "Typing Modes" in text editors is notoriously difficult. If a user toggles **Bold** on an empty selection, they expect the *next* characters typed to be bold. This project implements a robust "capture and apply" logic that manages these spans dynamically without re-rendering the entire text buffer, ensuring smooth performance even with large documents.
+TextEditorApp is a modern Android text editor that allows users to create, edit, and manage multiple documents with advanced text formatting capabilities. The app leverages Jetpack Compose for a responsive UI and Room Database for persistent storage, ensuring all your documents are saved locally on your device.
 
-## ✨ Key Features
+## ✨ Features
 
-- **Dynamic Typing Modes**: Toggle Bold, Italic, Underline, and Strikethrough. The editor intelligently applies these styles to newly typed text.
-- **Color Customization**: Full support for `ForegroundColorSpan` (text color) and `BackgroundColorSpan` (highlighting).
-- **Compose Interoperability**: Wrapped in an `AndroidView`, allowing it to fit perfectly into a Compose UI while utilizing the `SpannableStringBuilder` engine.
-- **Smart Selection Tracking**: Detects cursor movements and updates the UI state to reflect the formatting at the current cursor position.
-- **Material 3 Integration**: Automatically syncs with your app's Material 3 color scheme (OnBackground, SurfaceVariant, etc.).
+### Document Management
+- **Create & Edit Documents** - Create new documents and edit existing ones seamlessly
+- **Document List View** - Browse all your documents in a clean, organized list with previews
+- **Auto-save** - Documents are automatically saved as you type
+- **Delete Documents** - Remove unwanted documents with a confirmation dialog
+- **Document Preview** - See document titles and previews in the list view
+- **Timestamps** - Track when documents were created and last updated
 
-## 🛠 Technical Deep Dive
+### Rich Text Formatting
+- **Bold Text** - Apply bold styling to selected text
+- **Italic Text** - Add italic emphasis to your content
+- **Underline** - Underline important sections
+- **Strikethrough** - Mark text as deleted or outdated with strikethrough
+- **Text Color** - Choose from 12+ text colors to customize your content
+- **Highlight Color** - Add colored backgrounds to text with 12 highlight colors
+- **Typing Continuity** - Formatting is maintained while you continue typing
 
-### 1. The `RichEditText` Bridge
-The core is a private `RichEditText` class that extends the native `EditText`. It acts as a state-holder for "typing modes"—styles that are active but not yet applied to text.
+### User Experience
+- **Seamless Navigation** - Smooth transitions between document list and editor
+- **Material Design 3** - Modern, polished UI with Material Design principles
+- **Edge-to-Edge Display** - Utilizes full screen real estate with edge-to-edge layouts
+- **Empty State** - Helpful guidance when no documents exist
+- **Real-time Formatting** - See text formatting updates instantly
+- **Selection-based Formatting** - Select text and apply formatting on the fly
 
-### 2. The `restoreAndApply` Algorithm
-Inside `doOnTextChanged`, I implemented a custom algorithm to manage span lifecycle:
-- **Clean**: It clears overlapping spans in the current typing range to prevent "span bloating."
-- **Restore**: It preserves spans from the previous state of the text.
-- **Apply**: It injects new spans only into the newly added characters based on the active `typing` flags.
+## 🏗️ Architecture
 
-
-### 3. Programmatic Syncing
-To prevent infinite loops between Compose state updates and the Native View, the editor uses an `isUpdatingProgrammatically` flag. This ensures that when the `content` state changes (e.g., loading from a database), the cursor position and span integrity remain intact.
-
-## 📦 Tech Stack
-
-- **Framework**: Jetpack Compose (Material 3)
+### Technology Stack
 - **Language**: Kotlin
-- **DI**: Dagger Hilt
-- **Processing**: KSP (Kotlin Symbol Processing)
-- **Core APIs**: `AndroidView`, `SpannableStringBuilder`, `CharacterStyle`
+- **UI Framework**: Jetpack Compose
+- **Navigation**: Jetpack Navigation Compose
+- **Database**: Room Database
+- **Dependency Injection**: Hilt
+- **State Management**: Flow & StateFlow
+- **Design System**: Material Design 3
 
-## 📂 Project Structure
+### Project Structure
+```com.example.texteditor/ 
+├── ui/ 
+│ ├── editor/ 
+│ │ ├── EditorScreen.kt # Main editor screen 
+│ │ ├── EditorViewModel.kt # Editor state & business logic
+│ │ ├── EditorUiState.kt # Editor UI state model 
+│ │ ├── RichTextEditor.kt # Rich text input field component 
+│ │ └── ColorPickerBottomSheet.kt # Color selection UI 
+│ ├── documentlist/ 
+│ │ ├── DocumentListScreen.kt # Document list screen 
+│ │ └── DocumentListViewModel.kt # List state & logic 
+│ ├── navigation/ 
+│ │ └── AppNavGraph.kt # App navigation structure 
+│ └── theme/ 
+│ └── RichTextEditorTheme.kt # Material Design 3 theme 
+├── data/ │ ├── db/ 
+│ │ ├── AppDatabase.kt # Room database configuration 
+│ │ ├── DocumentEntity.kt # Document data model 
+│ │ └── DocumentDao.kt # Database access object 
+│ ├── DocumentRepository.kt # Data repository layer 
+│ └── SpanSerializer.kt # Text span serialization (formatting) 
+├── di/ │ └── AppModule.kt # Dependency injection setup 
+├── MainActivity.kt # App entry point 
+└── App.kt # Application class
+```
 
-- `ui/editor/RichTextEditor.kt`: The primary component containing the `AndroidView` and span management logic.
-- `ui/theme/`: Custom Material 3 theme implementation.
-- `data/`: (Ready for Room/DataStore integration for persistence).
+
+### Key Components
+
+#### EditorViewModel
+Manages the editor's state including:
+- Document title and content
+- Active formatting states (bold, italic, underline, strikethrough)
+- Active colors (text color, highlight color)
+- Text selection state
+- Save status
+
+#### SpanSerializer
+Handles text formatting serialization:
+- Converts text with formatting to HTML for storage
+- Restores formatted text from HTML
+- Detects active formatting in selected text ranges
+- Manages style spans (bold, italic, underline, strikethrough)
+- Manages color spans (text color, highlight)
+
+#### DocumentRepository
+Provides CRUD operations for documents:
+- Retrieve all documents
+- Fetch document by ID
+- Save new documents
+- Update existing documents
+- Delete documents
 
 ## 🚀 Getting Started
 
-1. **Clone the Repo**:clone the repo
-2. **Open in Android Studio**: Ladybug (2024.2.1) or newer recommended.
-3. **Build**: The project uses KSP; ensure your libs.versions.toml is synced.
-   
+### Prerequisites
+- Android Studio 2023.1 or later
+- Android SDK 24 (Android 7.0) or higher
+- Kotlin 1.9+
+
+### Installation
+
+1. Clone the repository:
+   git clone https://github.com/namanmawandia/TextEditorApp.git
+2. Open the project in Android Studio
+3. Build and run the application:
+   Click Run → Run 'app' or press Shift + F10
