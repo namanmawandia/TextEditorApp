@@ -45,32 +45,35 @@ TextEditorApp is a modern Android text editor that allows users to create, edit,
 - **Design System**: Material Design 3
 
 ### Project Structure
-```com.example.texteditor/ 
-├── ui/ 
-│ ├── editor/ 
-│ │ ├── EditorScreen.kt # Main editor screen 
-│ │ ├── EditorViewModel.kt # Editor state & business logic
-│ │ ├── EditorUiState.kt # Editor UI state model 
-│ │ ├── RichTextEditor.kt # Rich text input field component 
-│ │ └── ColorPickerBottomSheet.kt # Color selection UI 
-│ ├── documentlist/ 
-│ │ ├── DocumentListScreen.kt # Document list screen 
-│ │ └── DocumentListViewModel.kt # List state & logic 
-│ ├── navigation/ 
-│ │ └── AppNavGraph.kt # App navigation structure 
-│ └── theme/ 
-│ └── RichTextEditorTheme.kt # Material Design 3 theme 
-├── data/ │ ├── db/ 
-│ │ ├── AppDatabase.kt # Room database configuration 
-│ │ ├── DocumentEntity.kt # Document data model 
-│ │ └── DocumentDao.kt # Database access object 
-│ ├── DocumentRepository.kt # Data repository layer 
-│ └── SpanSerializer.kt # Text span serialization (formatting) 
-├── di/ │ └── AppModule.kt # Dependency injection setup 
-├── MainActivity.kt # App entry point 
-└── App.kt # Application class
-```
 
+```
+com.example.texteditor/
+├── ui/
+│   ├── editor/
+│   │   ├── EditorScreen.kt          # Main editor screen
+│   │   ├── EditorViewModel.kt       # Editor state & business logic
+│   │   ├── EditorUiState.kt         # Editor UI state model
+│   │   ├── RichTextEditor.kt        # Rich text input field component
+│   │   └── ColorPickerBottomSheet.kt # Color selection UI
+│   ├── documentlist/
+│   │   ├── DocumentListScreen.kt    # Document list screen
+│   │   └── DocumentListViewModel.kt # List state & logic
+│   ├── navigation/
+│   │   └── AppNavGraph.kt           # App navigation structure
+│   └── theme/
+│       └── RichTextEditorTheme.kt   # Material Design 3 theme
+├── data/
+│   ├── db/
+│   │   ├── AppDatabase.kt           # Room database configuration
+│   │   ├── DocumentEntity.kt        # Document data model
+│   │   └── DocumentDao.kt           # Database access object
+│   ├── DocumentRepository.kt        # Data repository layer
+│   └── SpanSerializer.kt            # Text span serialization (formatting)
+├── di/
+│   └── AppModule.kt                 # Dependency injection setup
+├── MainActivity.kt                  # App entry point
+└── App.kt                           # Application class
+```
 
 ### Key Components
 
@@ -108,7 +111,81 @@ Provides CRUD operations for documents:
 ### Installation
 
 1. Clone the repository:
-   git clone https://github.com/namanmawandia/TextEditorApp.git
+```bash
+git clone https://github.com/namanmawandia/TextEditorApp.git
+```
+
 2. Open the project in Android Studio
+
 3. Build and run the application:
-   Click Run → Run 'app' or press Shift + F10
+   - Click `Run` → `Run 'app'` or press `Shift + F10`
+
+## 💡 How It Works
+
+### Creating a Document
+1. Launch the app to view the document list
+2. Tap the **+** button to create a new document
+3. Enter a title and start typing your content
+4. Tap the back button to return to the list (auto-saves)
+
+### Editing with Formatting
+1. Open a document from the list
+2. Select text by tapping and dragging
+3. Use the toolbar to apply formatting:
+   - **B** for bold
+   - **I** for italic
+   - **U** for underline
+   - **S** for strikethrough
+   - **Color** button for text color
+   - **Highlight** button for background color
+4. Continue typing with active formatting
+
+### Deleting a Document
+1. In the document list, long-press a document
+2. Confirm deletion in the dialog
+3. The document is permanently removed
+
+## 📱 UI Components
+
+### Editor Screen
+- Editable title field at the top
+- Rich text editor with formatting support
+- Toolbar with formatting options
+- Color picker bottom sheets
+- Save status indicator
+
+### Document List Screen
+- List of all documents with previews
+- Document cards showing title, content preview, and modification date
+- Floating Action Button (+) to create new documents
+- Empty state with helpful guidance
+- Delete confirmation dialogs
+
+## 🎨 Color Palette
+
+### Text Colors
+Black, Dark Gray, Gray, White, Pink, Purple, Blue, Cyan, Green, Yellow, Orange, Brown
+
+### Highlight Colors
+Yellow, Light Yellow, Light Green, Cyan, Light Red, Lavender, Light Blue, Orange, Pink, Gray, White, Light Gray
+
+## 🔒 Data Storage
+
+All documents are stored locally on your device using Room Database. No cloud synchronization or network connection required. Documents persist even after closing the app.
+
+## 📝 License
+
+This project is open source and available under the MIT License.
+
+## 👤 Author
+
+**Naman Mawandia**
+- GitHub: [@namanmawandia](https://github.com/namanmawandia)
+
+## 🙏 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/namanmawandia/TextEditorApp/issues) if you want to contribute.
+
+---
+
+**Happy editing! 📝✨**
